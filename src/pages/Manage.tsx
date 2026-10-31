@@ -116,7 +116,8 @@ function EditForm({ e, onDone }: { e: MyEvent; onDone: (saved: boolean) => void 
 export default function Manage() {
   const { profile, session } = useStore();
   const uid = session?.user.id;
-  const events = useAsync(() => (uid ? listMyEvents(uid) : Promise.resolve([])), [uid]);
+  const isPrincipal = profile?.role === 'principal';
+  const events = useAsync(() => (uid ? listMyEvents(uid, isPrincipal) : Promise.resolve([])), [uid, isPrincipal]);
   const queue = useAsync(listPendingRegistrations, []);
   const [queueError, setQueueError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
@@ -152,7 +153,7 @@ export default function Manage() {
       <div className="page-head">
         <div>
           <h1>Manage activities</h1>
-          <p className="sub">Events you’ve created.</p>
+          <p className="sub">{isPrincipal ? 'Every event on campus, so you can add competitions and manage registrations.' : 'Events you’ve created.'}</p>
         </div>
         <Link to="/studio" className="btn">New event</Link>
       </div>

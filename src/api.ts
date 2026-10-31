@@ -163,14 +163,11 @@ export interface MyEvent extends Activity {
   decline_reason: string | null;
 }
 
-export async function listMyEvents(userId: string): Promise<MyEvent[]> {
-  return unwrap(
-    await supabase
-      .from('activities')
-      .select(`${ACTIVITY_COLS}, decline_reason`)
-      .eq('created_by', userId)
-      .order('created_at', { ascending: false }),
-  ) as unknown as MyEvent[];
+/** Events you created; the principal (everything = true) sees every event, including seeded ones with no owner. */
+export async function listMyEvents(userId: string, everything = false): Promise<MyEvent[]> {
+  let q = supabase.from('activities').select(`${ACTIVITY_COLS}, decline_reason`);
+  if (!everything) q = q.eq('created_by', userId);
+  return unwrap(await q.order('created_at', { ascending: false })) as unknown as MyEvent[];
 }
 
 export async function updateEvent(
