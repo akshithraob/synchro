@@ -1764,3 +1764,18 @@ h2 {
   --bg: #0e131a; --surface: #151c26; --surface-2: #1b2431; --ink: #eef2f7; --muted: #9aa8ba; --line: #243040;
   --brand: #94a3b8; --brand-soft: #1f2a3a; --brand-nav: #1f2a3a; --on-brand: #0b1018; --scrim: #1f2a3a;
 }
+
+.m-brand-text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+
+.m-brand-text small {
+  overflow: hidden;
+  max-width: 55vw;
+  color: var(--muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -94,6 +94,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [theme]);
 
   useEffect(() => {
+    document.title = institute ? `Synchro · ${institute}` : 'Synchro';
+  }, [institute]);
+
+  useEffect(() => {
     document.documentElement.dataset.palette = palette;
     try {
       localStorage.setItem('synchro.palette', palette);

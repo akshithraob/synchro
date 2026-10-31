@@ -10,7 +10,7 @@ const DAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const utcDay = (iso: string) => iso.slice(0, 10);
 
 export default function Dashboard() {
-  const { registrations, profile } = useStore();
+  const { registrations, profile, institute } = useStore();
   const all = useAsync(listActivities, []);
   const notes = useAsync(listAnnouncements, []);
 
@@ -37,7 +37,7 @@ export default function Dashboard() {
             {new Intl.DateTimeFormat('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }).format(new Date())}
           </p>
           <h1>Good day, {first}</h1>
-          <p className="sub">Your next big thing is closer than you think.</p>
+          <p className="sub">{institute ? `What’s happening at ${institute}.` : 'Your next big thing is closer than you think.'}</p>
         </div>
         <Link to="/discover" className="btn">
           Explore activities →

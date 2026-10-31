@@ -3,7 +3,7 @@ import { fmtDay } from '../api';
 import { useStore } from '../store';
 
 export default function Portfolio() {
-  const { profile, registrations } = useStore();
+  const { profile, registrations, institute } = useStore();
   const attended = registrations
     .filter((r) => r.checked_in_at)
     .sort((a, b) => a.activities.starts_at.localeCompare(b.activities.starts_at));
@@ -16,7 +16,7 @@ export default function Portfolio() {
       <div className="page-head">
         <div>
           <h1>Portfolio</h1>
-          <p className="sub">{profile?.full_name || 'Your'} verified campus activity record.</p>
+          <p className="sub">{profile?.full_name || 'Your'} verified activity record{institute ? ` at ${institute}` : ''}.</p>
         </div>
         <button className="btn" onClick={() => window.print()} disabled={!attended.length}>
           Print / save as PDF

@@ -6,7 +6,7 @@ import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
 
 export default function Principal() {
-  const { profile } = useStore();
+  const { profile, institute } = useStore();
   const pending = useAsync(listPending, []);
   const approved = useAsync(listActivities, []);
   const analytics = useAsync(getAnalytics, []);
@@ -49,7 +49,7 @@ export default function Principal() {
   const categoryPct = (analytics.data?.categories ?? []).map((c) => ({ name: c.name, pct: catTotal ? Math.round((c.n / catTotal) * 100) : 0 }));
 
   const exportCsv = () => {
-    const rows = [['Event', 'Category', 'Capacity', 'Registered', 'Checked in'], ...events.map((e) => [e.title, e.category, e.capacity, e.registered, e.checked_in])];
+    const rows = [['Institute', institute], ['Event', 'Category', 'Capacity', 'Registered', 'Checked in'], ...events.map((e) => [e.title, e.category, e.capacity, e.registered, e.checked_in])];
     const csv = rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
@@ -63,7 +63,7 @@ export default function Principal() {
     <main className="page">
       <div className="page-head">
         <div>
-          <h1>Northstar at a glance</h1>
+          <h1>{institute || 'Campus'} at a glance</h1>
           <p className="sub">Campus engagement · Fall 2026</p>
         </div>
         <span className="pill">Live</span>

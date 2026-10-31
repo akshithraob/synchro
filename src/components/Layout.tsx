@@ -126,7 +126,10 @@ export default function Layout() {
             <span className="brand-mark" aria-hidden>
               S
             </span>
-            <strong>synchro</strong>
+            <span className="m-brand-text">
+              <strong>synchro</strong>
+              {institute && <small>{institute}</small>}
+            </span>
           </Link>
           <Link to="/discover" className="icon-btn m-search" aria-label="Search activities">
             ⌕
