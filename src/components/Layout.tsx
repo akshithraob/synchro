@@ -23,8 +23,14 @@ const admin: { to: string; label: string; roles: Role[] }[] = [
 const mobileTabs = [
   { to: '/', icon: '⌂', label: 'Home', end: true },
   { to: '/discover', icon: '⌕', label: 'Discover' },
-  { to: '/my-activities', icon: '◷', label: 'Schedule' },
-  { to: '/portfolio', icon: '✦', label: 'Portfolio' },
+  { to: '/my-activities', icon: '◷', label: 'Mine' },
+  { to: '/notifications', icon: '◔', label: 'Alerts', badge: true },
+];
+
+const moreLinks = [
+  { to: '/calendar', label: 'Calendar' },
+  { to: '/announcements', label: 'Announcements' },
+  { to: '/portfolio', label: 'Portfolio' },
 ];
 
 const initials = (name: string) =>
@@ -40,6 +46,7 @@ export default function Layout() {
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [unread, setUnread] = useState(0);
+  const [more, setMore] = useState(false);
   const { pathname } = useLocation();
   const uid = session?.user.id;
 
@@ -73,7 +80,7 @@ export default function Layout() {
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden>
-            C
+            S
           </span>
           <div>
             <strong>synchro</strong>
@@ -112,6 +119,15 @@ export default function Layout() {
 
       <div className="main">
         <header className="topbar">
+          <Link to="/" className="m-brand" aria-label="Synchro home">
+            <span className="brand-mark" aria-hidden>
+              S
+            </span>
+            <strong>synchro</strong>
+          </Link>
+          <Link to="/discover" className="icon-btn m-search" aria-label="Search activities">
+            ⌕
+          </Link>
           <form className="search" role="search" onSubmit={submit}>
             <span aria-hidden>⌕</span>
             <input
@@ -147,12 +163,51 @@ export default function Layout() {
 
       <nav className="bottom-nav" aria-label="Primary">
         {mobileTabs.map((n) => (
-          <NavLink key={n.to} to={n.to} end={n.end}>
-            <span aria-hidden>{n.icon}</span>
+          <NavLink key={n.to} to={n.to} end={n.end} onClick={() => setMore(false)}>
+            <span aria-hidden className="tab-ico">
+              {n.icon}
+              {n.badge && unread > 0 && <b className="tab-badge">{unread > 9 ? '9+' : unread}</b>}
+            </span>
             {n.label}
           </NavLink>
         ))}
+        <button className={more ? 'tab-more open' : 'tab-more'} onClick={() => setMore((v) => !v)} aria-expanded={more} aria-controls="more-sheet">
+          <span aria-hidden className="tab-ico">
+            ☰
+          </span>
+          More
+        </button>
       </nav>
+
+      {more && (
+        <>
+          <div className="sheet-backdrop" onClick={() => setMore(false)} />
+          <div className="sheet" id="more-sheet" role="dialog" aria-label="More">
+            <div className="sheet-handle" aria-hidden />
+            <div className="sheet-profile">
+              <span className="avatar">{initials(name)}</span>
+              <div>
+                <strong>{name}</strong>
+                <small style={{ textTransform: 'capitalize' }}>{role}</small>
+              </div>
+            </div>
+            {[...moreLinks, ...links].map((n) => (
+              <Link key={n.to} to={n.to} className="sheet-link" onClick={() => setMore(false)}>
+                {n.label}
+              </Link>
+            ))}
+            <div className="sheet-actions">
+              <InstallButton />
+              <button className="btn ghost" onClick={toggleTheme}>
+                {theme === 'light' ? 'Dark theme' : 'Light theme'}
+              </button>
+              <button className="btn ghost" onClick={signOut}>
+                Sign out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

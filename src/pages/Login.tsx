@@ -38,7 +38,7 @@ export default function Login() {
       <form className="card confirm" onSubmit={submit} style={{ textAlign: 'left', alignItems: 'stretch' }}>
         <div className="brand" style={{ justifyContent: 'center', marginBottom: 8 }}>
           <span className="brand-mark" aria-hidden>
-            C
+            S
           </span>
           <strong style={{ fontSize: 20 }}>synchro</strong>
         </div>
