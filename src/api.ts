@@ -1,0 +1,218 @@
+import { supabase } from './lib/supabase';
+
+export type Role = 'student' | 'teacher' | 'coordinator' | 'principal';
+export type Status = 'draft' | 'pending' | 'approved' | 'declined';
+
+export interface Activity {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  starts_at: string;
+  location: string;
+  location_note: string;
+  cover: string;
+  capacity: number;
+  registered_count: number;
+  checked_in_count: number;
+  tagline: string;
+  organizer: string;
+  about: string;
+  about_body: string;
+  requirements: string;
+  schedule: { time: string; label: string }[];
+  featured: boolean;
+  status: Status;
+}
+
+export interface Registration {
+  id: string;
+  activity_id: string;
+  pass_code: string;
+  checked_in_at: string | null;
+  activities: Activity;
+}
+
+export interface Announcement {
+  id: string;
+  tag: string;
+  title: string;
+  body: string;
+}
+
+export interface Profile {
+  id: string;
+  full_name: string;
+  role: Role;
+  year: string | null;
+}
+
+const ACTIVITY_COLS =
+  'id, slug, title, category, starts_at, location, location_note, cover, capacity, registered_count, checked_in_count, tagline, organizer, about, about_body, requirements, schedule, featured, status';
+
+function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
+  if (res.error) throw new Error(res.error.message);
+  return res.data as T;
+}
+
+export const spotsLeft = (a: Pick<Activity, 'capacity' | 'registered_count'>) => a.capacity - a.registered_count;
+
+export async function getProfile(userId: string): Promise<Profile> {
+  return unwrap(await supabase.from('profiles').select('id, full_name, role, year').eq('id', userId).single());
+}
+
+export async function listActivities(): Promise<Activity[]> {
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'approved').order('starts_at'));
+}
+
+export async function getActivity(slug: string): Promise<Activity | null> {
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('slug', slug).maybeSingle());
+}
+
+export async function listMyRegistrations(): Promise<Registration[]> {
+  const rows = unwrap(
+    await supabase
+      .from('registrations')
+      .select(`id, activity_id, pass_code, checked_in_at, activities (${ACTIVITY_COLS})`)
+      .order('created_at', { ascending: false }),
+  );
+  return rows as unknown as Registration[];
+}
+
+export async function register(activityId: string, userId: string) {
+  const { error } = await supabase.from('registrations').insert({ activity_id: activityId, user_id: userId });
+  if (error) {
+    if (error.message.includes('activity_full')) throw new Error('Sorry, this event just filled up.');
+    if (error.code === '23505') return; // already registered: treat as success
+    throw new Error(error.message);
+  }
+}
+
+export async function cancelRegistration(id: string) {
+  const { error } = await supabase.from('registrations').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function listAnnouncements(): Promise<Announcement[]> {
+  return unwrap(await supabase.from('announcements').select('id, tag, title, body').order('created_at', { ascending: false }));
+}
+
+export interface MyEvent extends Activity {
+  decline_reason: string | null;
+}
+
+export async function listMyEvents(userId: string): Promise<MyEvent[]> {
+  return unwrap(
+    await supabase
+      .from('activities')
+      .select(`${ACTIVITY_COLS}, decline_reason`)
+      .eq('created_by', userId)
+      .order('created_at', { ascending: false }),
+  ) as unknown as MyEvent[];
+}
+
+export async function updateEvent(
+  id: string,
+  patch: { title: string; category: string; capacity: number; location: string; about_body: string },
+) {
+  const { data, error } = await supabase.from('activities').update(patch).eq('id', id).select('id');
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error('This event can no longer be edited.');
+}
+
+export async function withdrawEvent(id: string) {
+  const { data, error } = await supabase.from('activities').delete().eq('id', id).select('id');
+  if (error) throw new Error(error.message);
+  if (!data?.length) throw new Error('Only unapproved events can be withdrawn.');
+}
+
+export interface Registrant {
+  full_name: string;
+  pass_code: string;
+  checked_in_at: string | null;
+}
+
+export async function listRegistrants(activityId: string): Promise<Registrant[]> {
+  return unwrap(await supabase.rpc('event_registrants', { p_activity: activityId })) as Registrant[];
+}
+
+export interface Analytics {
+  weekly: { week: string; n: number }[];
+  categories: { name: string; n: number }[];
+  events: { title: string; category: string; capacity: number; registered: number; checked_in: number }[];
+}
+
+export async function getAnalytics(): Promise<Analytics> {
+  return unwrap(await supabase.rpc('analytics_summary')) as Analytics;
+}
+
+export interface AppUser {
+  id: string;
+  full_name: string;
+  email: string;
+  role: Role;
+}
+
+export async function listUsers(): Promise<AppUser[]> {
+  return unwrap(await supabase.rpc('list_users')) as AppUser[];
+}
+
+export async function setUserRole(userId: string, role: Role) {
+  const { error } = await supabase.rpc('set_user_role', { p_user: userId, p_role: role });
+  if (error) throw new Error(error.message);
+}
+
+export async function postAnnouncement(a: { tag: string; title: string; body: string }) {
+  const { error } = await supabase.from('announcements').insert(a);
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteAnnouncement(id: string) {
+  const { error } = await supabase.from('announcements').delete().eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export async function listPending(): Promise<Activity[]> {
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'pending').order('created_at'));
+}
+
+export async function decide(id: string, status: 'approved' | 'declined', reason?: string) {
+  const { error } = await supabase
+    .from('activities')
+    .update({ status, decline_reason: status === 'declined' ? reason || null : null })
+    .eq('id', id);
+  if (error) throw new Error(error.message);
+}
+
+export interface NewActivity {
+  title: string;
+  category: string;
+  capacity: number;
+  location: string;
+  about: string;
+  about_body: string;
+  schedule: { time: string; label: string }[];
+  starts_at: string;
+}
+
+export async function submitActivity(a: NewActivity, userId: string) {
+  const slug = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Math.random().toString(36).slice(2, 6)}`;
+  const { error } = await supabase.from('activities').insert({ ...a, slug, status: 'pending', created_by: userId });
+  if (error) throw new Error(error.message);
+}
+
+export interface CheckInResult {
+  ok: boolean;
+  reason?: 'not_found' | 'wrong_event' | 'already';
+  name?: string;
+}
+
+export async function checkIn(code: string, activityId: string): Promise<CheckInResult> {
+  return unwrap(await supabase.rpc('check_in', { p_code: code, p_activity: activityId })) as CheckInResult;
+}
+
+// Campus-local wall-clock time is stored as UTC and rendered as UTC so it never shifts with the viewer's timezone.
+const fmt = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...o });
+export const fmtDay = (iso: string) => fmt({ weekday: 'short', month: 'short', day: 'numeric' }).format(new Date(iso));
+export const fmtTime = (iso: string) => fmt({ hour: 'numeric', minute: '2-digit' }).format(new Date(iso));
+export const fmtWhen = (iso: string) => `${fmtDay(iso)} · ${fmtTime(iso)}`;
