@@ -13,7 +13,7 @@ const main = [
 ];
 
 const admin: { to: string; label: string; roles: Role[] }[] = [
-  { to: '/manage', label: 'Manage activities', roles: ['teacher', 'principal'] },
+  { to: '/manage', label: 'Manage activities', roles: ['teacher', 'coordinator', 'principal'] },
   { to: '/scanner', label: 'Event check-in', roles: ['coordinator', 'teacher', 'principal'] },
   { to: '/principal', label: 'Analytics', roles: ['principal'] },
   { to: '/users', label: 'People & roles', roles: ['principal'] },

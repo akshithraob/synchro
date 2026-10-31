@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { REG_LABEL } from '../api';
 import ActivityCard from '../components/ActivityCard';
 import { useStore } from '../store';
 
@@ -16,7 +17,10 @@ export default function MyActivities() {
       {registrations.length ? (
         <div className="grid cols-4">
           {registrations.map((r) => (
-            <ActivityCard key={r.id} a={r.activities} showSpots={false} />
+            <div key={r.id} style={{ display: 'grid', gap: 6 }}>
+              <span className="pill" style={{ justifySelf: 'start' }}>{r.checked_in_at ? 'Attended' : REG_LABEL[r.status]}</span>
+              <ActivityCard a={r.activities} showSpots={false} />
+            </div>
           ))}
         </div>
       ) : (

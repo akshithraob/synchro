@@ -48,7 +48,9 @@ function nextFriday() {
 }
 
 export default function Studio() {
-  const { session } = useStore();
+  const { session, profile } = useStore();
+  const isCoordinator = profile?.role === 'coordinator';
+  const [approval, setApproval] = useState<'auto' | 'manual'>('auto');
   const [name, setName] = useState('Annual Sports Day');
   const [prompt, setPrompt] = useState('Organize a sports day for 300 students next Friday. Include track events, team games, and an opening ceremony.');
   const [category, setCategory] = useState('Sports');
@@ -82,11 +84,13 @@ export default function Studio() {
           about_body: prompt.trim(),
           schedule: plan.sessions,
           starts_at: nextFriday(),
+          approval_mode: approval,
         },
         session.user.id,
+        isCoordinator,
       );
       setSubmitted(true);
-      setSaved('Submitted for approval');
+      setSaved(isCoordinator ? 'Published' : 'Submitted for approval');
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -157,12 +161,18 @@ export default function Studio() {
             </span>
           </div>
 
+          <label htmlFor="approval">Registration</label>
+          <select id="approval" className="select" style={{ maxWidth: 320 }} value={approval} onChange={(e) => setApproval(e.target.value as 'auto' | 'manual')}>
+            <option value="auto">Automatic confirmation</option>
+            <option value="manual">I approve each registration</option>
+          </select>
+
           <div style={{ marginTop: 8 }}>
             <button className="btn" onClick={generate} disabled={!prompt.trim() || !name.trim()}>
               Generate event plan ✦
             </button>
           </div>
-          <p className="warn">Approval required before publish</p>
+          <p className="warn">{isCoordinator ? 'Coordinators publish directly' : 'Approval required before publish'}</p>
         </div>
 
         <aside className="plan" aria-label="Plan preview" aria-live="polite">
@@ -179,7 +189,7 @@ export default function Studio() {
             <>
               <h3 style={{ fontSize: 15 }}>{plan.title}</h3>
               <p className="muted" style={{ fontSize: 12 }}>
-                {submitted ? 'Submitted · waiting for the principal' : 'Draft plan · review before submitting'}
+                {submitted ? (isCoordinator ? 'Published' : 'Submitted · waiting for the principal') : 'Draft plan · review before submitting'}
               </p>
               {plan.sessions.map((s, i) => (
                 <div className="session" key={`${s.time}-${i}`}>
@@ -199,7 +209,7 @@ export default function Studio() {
                 Nothing is published automatically.
               </p>
               <button className="btn block" disabled={submitted || busy} onClick={submit}>
-                {submitted ? 'Awaiting approval' : busy ? 'Submitting…' : 'Submit for approval'}
+                {submitted ? (isCoordinator ? 'Published' : 'Awaiting approval') : busy ? 'Submitting…' : isCoordinator ? 'Publish event' : 'Submit for approval'}
               </button>
               {error && (
                 <p role="alert" className="warn">

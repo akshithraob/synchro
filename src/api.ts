@@ -23,10 +23,21 @@ export interface Activity {
   schedule: { time: string; label: string }[];
   featured: boolean;
   status: Status;
+  approval_mode: 'auto' | 'manual';
 }
+
+export type RegStatus = 'pending' | 'approved' | 'rejected' | 'waitlisted';
+
+export const REG_LABEL: Record<RegStatus, string> = {
+  pending: 'Pending approval',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  waitlisted: 'Waitlisted',
+};
 
 export interface Registration {
   id: string;
+  status: RegStatus;
   activity_id: string;
   pass_code: string;
   checked_in_at: string | null;
@@ -48,7 +59,7 @@ export interface Profile {
 }
 
 const ACTIVITY_COLS =
-  'id, slug, title, category, starts_at, location, location_note, cover, capacity, registered_count, checked_in_count, tagline, organizer, about, about_body, requirements, schedule, featured, status';
+  'id, slug, title, category, starts_at, location, location_note, cover, capacity, registered_count, checked_in_count, tagline, organizer, about, about_body, requirements, schedule, featured, status, approval_mode';
 
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -73,7 +84,7 @@ export async function listMyRegistrations(): Promise<Registration[]> {
   const rows = unwrap(
     await supabase
       .from('registrations')
-      .select(`id, activity_id, pass_code, checked_in_at, activities (${ACTIVITY_COLS})`)
+      .select(`id, status, activity_id, pass_code, checked_in_at, activities (${ACTIVITY_COLS})`)
       .order('created_at', { ascending: false }),
   );
   return rows as unknown as Registration[];
@@ -82,7 +93,6 @@ export async function listMyRegistrations(): Promise<Registration[]> {
 export async function register(activityId: string, userId: string) {
   const { error } = await supabase.from('registrations').insert({ activity_id: activityId, user_id: userId });
   if (error) {
-    if (error.message.includes('activity_full')) throw new Error('Sorry, this event just filled up.');
     if (error.code === '23505') return; // already registered: treat as success
     throw new Error(error.message);
   }
@@ -113,7 +123,7 @@ export async function listMyEvents(userId: string): Promise<MyEvent[]> {
 
 export async function updateEvent(
   id: string,
-  patch: { title: string; category: string; capacity: number; location: string; about_body: string },
+  patch: { title: string; category: string; capacity: number; location: string; about_body: string; approval_mode: 'auto' | 'manual' },
 ) {
   const { data, error } = await supabase.from('activities').update(patch).eq('id', id).select('id');
   if (error) throw new Error(error.message);
@@ -127,13 +137,33 @@ export async function withdrawEvent(id: string) {
 }
 
 export interface Registrant {
+  id: string;
   full_name: string;
   pass_code: string;
+  status: RegStatus;
   checked_in_at: string | null;
+  created_at: string;
 }
 
 export async function listRegistrants(activityId: string): Promise<Registrant[]> {
-  return unwrap(await supabase.rpc('event_registrants', { p_activity: activityId })) as Registrant[];
+  return unwrap(await supabase.rpc('event_registrations', { p_activity: activityId })) as Registrant[];
+}
+
+export interface PendingRegistration {
+  id: string;
+  activity_id: string;
+  activity_title: string;
+  full_name: string;
+  created_at: string;
+}
+
+export async function listPendingRegistrations(): Promise<PendingRegistration[]> {
+  return unwrap(await supabase.rpc('pending_registrations')) as PendingRegistration[];
+}
+
+export async function decideRegistration(id: string, status: 'approved' | 'rejected') {
+  const { error } = await supabase.rpc('decide_registration', { p_id: id, p_status: status });
+  if (error) throw new Error(error.message);
 }
 
 export interface Analytics {
@@ -193,17 +223,18 @@ export interface NewActivity {
   about_body: string;
   schedule: { time: string; label: string }[];
   starts_at: string;
+  approval_mode: 'auto' | 'manual';
 }
 
-export async function submitActivity(a: NewActivity, userId: string) {
+export async function submitActivity(a: NewActivity, userId: string, publish = false) {
   const slug = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Math.random().toString(36).slice(2, 6)}`;
-  const { error } = await supabase.from('activities').insert({ ...a, slug, status: 'pending', created_by: userId });
+  const { error } = await supabase.from('activities').insert({ ...a, slug, status: publish ? 'approved' : 'pending', created_by: userId });
   if (error) throw new Error(error.message);
 }
 
 export interface CheckInResult {
   ok: boolean;
-  reason?: 'not_found' | 'wrong_event' | 'already';
+  reason?: 'not_found' | 'wrong_event' | 'already' | 'not_approved';
   name?: string;
 }
 

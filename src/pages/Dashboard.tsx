@@ -14,7 +14,7 @@ export default function Dashboard() {
   const all = useAsync(listActivities, []);
   const notes = useAsync(listAnnouncements, []);
 
-  const upcoming = registrations.map((r) => r.activities).filter((a) => a.status === 'approved');
+  const upcoming = registrations.filter((r) => r.status === 'approved').map((r) => r.activities).filter((a) => a.status === 'approved');
   const registeredIds = new Set(registrations.map((r) => r.activity_id));
   const picks = (all.data ?? []).filter((a) => !registeredIds.has(a.id)).slice(0, 2);
 
@@ -53,7 +53,7 @@ export default function Dashboard() {
         </section>
         <div className="card stat">
           <span className="label">Activities joined</span>
-          <span className="value">{String(registrations.length).padStart(2, '0')}</span>
+          <span className="value">{String(registrations.filter((r) => r.status === 'approved' || r.status === 'pending').length).padStart(2, '0')}</span>
           <span className="trend">{registrations.filter((r) => r.checked_in_at).length} attended</span>
         </div>
         <div className="card stat">

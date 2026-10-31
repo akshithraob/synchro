@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
-import { fmtDay, fmtTime, getActivity, spotsLeft } from '../api';
+import { fmtDay, fmtTime, getActivity, REG_LABEL, spotsLeft } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
 import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
@@ -17,7 +17,8 @@ export default function ActivityDetail() {
   if (error) return <main className="page"><ErrorBox message={error} onRetry={reload} /></main>;
   if (!a) return <Navigate to="/discover" replace />;
 
-  const isIn = registrations.some((r) => r.activity_id === a.id);
+  const mine = registrations.find((r) => r.activity_id === a.id);
+  const isIn = !!mine;
   const left = spotsLeft(a);
   const full = left <= 0 && !isIn;
   const pct = Math.min(100, Math.round((a.registered_count / a.capacity) * 100));
@@ -110,7 +111,7 @@ export default function ActivityDetail() {
         <aside className="card reg" aria-label="Registration">
           <h2>Save your spot</h2>
           <span className="pill" style={{ alignSelf: 'flex-start' }}>
-            {isIn ? 'You’re registered' : full ? 'Full' : 'Registration open'}
+            {mine ? REG_LABEL[mine.status] : full ? 'Full · waitlist open' : 'Registration open'}
           </span>
           <div>
             <p style={{ fontSize: 13, marginBottom: 6 }}>
@@ -132,20 +133,28 @@ export default function ActivityDetail() {
           </div>
           {isIn ? (
             <>
-              <Link to={`/activity/${a.slug}/confirmed`} className="btn block">
-                View my ticket
-              </Link>
+              {mine?.status === 'approved' ? (
+                <Link to={`/activity/${a.slug}/confirmed`} className="btn block">
+                  View my ticket
+                </Link>
+              ) : (
+                <p className="muted" style={{ fontSize: 13 }}>
+                  {mine?.status === 'pending' && 'The organizer will review your registration. You will get your pass once approved.'}
+                  {mine?.status === 'waitlisted' && 'The event is full. You will move up automatically if a seat opens.'}
+                  {mine?.status === 'rejected' && 'Your registration was not approved.'}
+                </p>
+              )}
               <button className="btn ghost block" disabled={busy} onClick={() => run(() => cancel(a.id))}>
-                Cancel registration
+                {mine?.status === 'waitlisted' ? 'Leave waitlist' : 'Cancel registration'}
               </button>
             </>
           ) : (
             <button
               className="btn block"
-              onClick={() => run(() => register(a.id), () => navigate(`/activity/${a.slug}/confirmed`))}
-              disabled={full || busy}
+              onClick={() => run(() => register(a.id), () => navigate(a.approval_mode === 'auto' && !full ? `/activity/${a.slug}/confirmed` : '/my-activities'))}
+              disabled={busy}
             >
-              {full ? 'Event is full' : busy ? 'Registering…' : 'Register for event'}
+              {busy ? 'Registering…' : full ? 'Join waitlist' : a.approval_mode === 'manual' ? 'Request to join' : 'Register for event'}
             </button>
           )}
           {actionError && (
@@ -154,7 +163,7 @@ export default function ActivityDetail() {
             </p>
           )}
           <p className="muted" style={{ fontSize: 12 }}>
-            Free · Confirmation is instant
+            {a.approval_mode === 'manual' ? 'Free · Organizer approval required' : 'Free · Confirmation is instant'}
           </p>
         </aside>
       </div>

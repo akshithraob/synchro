@@ -22,7 +22,7 @@ export default function Confirmed() {
       .catch(() => setQr(null));
   }, [reg]);
 
-  if (!reg) return <Navigate to={`/activity/${slug}`} replace />;
+  if (!reg || reg.status !== 'approved') return <Navigate to={`/activity/${slug}`} replace />;
   const a = reg.activities;
   const when = fmtWhen(a.starts_at);
 

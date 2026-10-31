@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { fmtWhen, listMyEvents, listRegistrants, updateEvent, withdrawEvent, type MyEvent } from '../api';
+import { decideRegistration, fmtWhen, listMyEvents, listPendingRegistrations, listRegistrants, REG_LABEL, updateEvent, withdrawEvent, type MyEvent } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
 import { categories } from '../data';
 import { useAsync } from '../lib/useAsync';
@@ -8,30 +8,55 @@ import { useStore } from '../store';
 
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', pending: 'Awaiting approval', approved: 'Live', declined: 'Declined' };
 
-function Registrants({ id }: { id: string }) {
+function Registrants({ id, onChanged }: { id: string; onChanged: () => void }) {
   const r = useAsync(() => listRegistrants(id), [id]);
+  const [error, setError] = useState<string | null>(null);
+
+  const decide = async (rid: string, status: 'approved' | 'rejected') => {
+    setError(null);
+    try {
+      await decideRegistration(rid, status);
+      r.reload();
+      onChanged();
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  };
+
   if (r.loading) return <Loading />;
   if (r.error) return <ErrorBox message={r.error} onRetry={r.reload} />;
   if (!r.data?.length) return <p className="muted">No registrations yet.</p>;
   return (
-    <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-      <thead>
-        <tr style={{ textAlign: 'left' }}>
-          <th>Name</th>
-          <th>Pass</th>
-          <th>Checked in</th>
-        </tr>
-      </thead>
-      <tbody>
-        {r.data.map((x) => (
-          <tr key={x.pass_code}>
-            <td>{x.full_name || '—'}</td>
-            <td>{x.pass_code}</td>
-            <td>{x.checked_in_at ? '✓' : '—'}</td>
+    <>
+      {error && <p role="alert" className="warn">{error}</p>}
+      <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+        <thead>
+          <tr style={{ textAlign: 'left' }}>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Checked in</th>
+            <th />
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {r.data.map((x) => (
+            <tr key={x.id}>
+              <td>{x.full_name || '—'}</td>
+              <td>{REG_LABEL[x.status]}</td>
+              <td>{x.checked_in_at ? '✓' : '—'}</td>
+              <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                {x.status === 'pending' && (
+                  <button className="btn" onClick={() => decide(x.id, 'approved')}>Approve</button>
+                )}{' '}
+                {x.status !== 'rejected' && !x.checked_in_at && (
+                  <button className="btn ghost" onClick={() => decide(x.id, 'rejected')}>Reject</button>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </>
   );
 }
 
@@ -41,6 +66,7 @@ function EditForm({ e, onDone }: { e: MyEvent; onDone: (saved: boolean) => void 
   const [capacity, setCapacity] = useState(e.capacity);
   const [location, setLocation] = useState(e.location);
   const [about, setAbout] = useState(e.about_body);
+  const [approval, setApproval] = useState<'auto' | 'manual'>(e.approval_mode);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +74,7 @@ function EditForm({ e, onDone }: { e: MyEvent; onDone: (saved: boolean) => void 
     setBusy(true);
     setError(null);
     try {
-      await updateEvent(e.id, { title: title.trim(), category, capacity, location: location.trim(), about_body: about.trim() });
+      await updateEvent(e.id, { title: title.trim(), category, capacity, location: location.trim(), about_body: about.trim(), approval_mode: approval });
       onDone(true);
     } catch (err) {
       setError((err as Error).message);
@@ -70,6 +96,11 @@ function EditForm({ e, onDone }: { e: MyEvent; onDone: (saved: boolean) => void 
       <input id={`cap-${e.id}`} type="number" min={1} className="field" value={capacity} onChange={(x) => setCapacity(Math.max(1, Number(x.target.value) || 1))} />
       <label htmlFor={`l-${e.id}`}>Venue</label>
       <input id={`l-${e.id}`} className="field" value={location} onChange={(x) => setLocation(x.target.value)} />
+      <label htmlFor={`m-${e.id}`}>Registration</label>
+      <select id={`m-${e.id}`} className="select" value={approval} onChange={(x) => setApproval(x.target.value as 'auto' | 'manual')}>
+        <option value="auto">Automatic confirmation</option>
+        <option value="manual">Organizer approves each registration</option>
+      </select>
       <label htmlFor={`a-${e.id}`}>Description</label>
       <textarea id={`a-${e.id}`} className="field" rows={3} value={about} onChange={(x) => setAbout(x.target.value)} />
       {error && <p role="alert" className="warn">{error}</p>}
@@ -85,11 +116,24 @@ export default function Manage() {
   const { profile, session } = useStore();
   const uid = session?.user.id;
   const events = useAsync(() => (uid ? listMyEvents(uid) : Promise.resolve([])), [uid]);
+  const queue = useAsync(listPendingRegistrations, []);
+  const [queueError, setQueueError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [showing, setShowing] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  if (profile && !['teacher', 'principal'].includes(profile.role)) return <Navigate to="/" replace />;
+  if (profile && !['teacher', 'coordinator', 'principal'].includes(profile.role)) return <Navigate to="/" replace />;
+
+  const decideQueued = async (id: string, status: 'approved' | 'rejected') => {
+    setQueueError(null);
+    try {
+      await decideRegistration(id, status);
+      queue.reload();
+      events.reload();
+    } catch (err) {
+      setQueueError((err as Error).message);
+    }
+  };
 
   const withdraw = async (e: MyEvent) => {
     if (!window.confirm(`Delete “${e.title}”? This can't be undone.`)) return;
@@ -111,6 +155,25 @@ export default function Manage() {
         </div>
         <Link to="/studio" className="btn">New event</Link>
       </div>
+
+      {(queue.data?.length ?? 0) > 0 && (
+        <section className="card panel" aria-label="Registrations awaiting approval" style={{ marginBottom: 20 }}>
+          <h2>Registrations awaiting approval</h2>
+          {queueError && <p role="alert" className="warn">{queueError}</p>}
+          {queue.data?.map((q) => (
+            <div className="approval" key={q.id}>
+              <div>
+                <strong style={{ fontSize: 14 }}>{q.full_name || 'Student'}</strong>
+                <small>{q.activity_title}</small>
+              </div>
+              <span style={{ display: 'flex', gap: 6 }}>
+                <button className="btn ghost" onClick={() => decideQueued(q.id, 'rejected')}>Reject</button>
+                <button className="btn" onClick={() => decideQueued(q.id, 'approved')}>Approve</button>
+              </span>
+            </div>
+          ))}
+        </section>
+      )}
 
       {events.loading && <Loading />}
       {events.error && <ErrorBox message={events.error} onRetry={events.reload} />}
@@ -138,7 +201,7 @@ export default function Manage() {
 
               {e.status === 'approved' && (
                 <p className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-                  {e.registered_count}/{e.capacity} registered · {e.checked_in_count} checked in
+                  {e.registered_count}/{e.capacity} seats held · {e.checked_in_count} checked in · {e.approval_mode === 'manual' ? 'manual approval' : 'auto-confirm'}
                 </p>
               )}
               {e.status === 'declined' && (
@@ -170,7 +233,7 @@ export default function Manage() {
 
               {showing === e.id && (
                 <div style={{ marginTop: 12 }}>
-                  <Registrants id={e.id} />
+                  <Registrants id={e.id} onChanged={() => { events.reload(); queue.reload(); }} />
                 </div>
               )}
             </article>

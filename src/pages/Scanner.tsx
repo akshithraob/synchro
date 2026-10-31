@@ -15,6 +15,7 @@ const REASONS: Record<string, string> = {
   not_found: 'No registration found for that pass',
   wrong_event: 'This pass is for a different event',
   already: 'Already checked in',
+  not_approved: 'Registration is not approved yet',
 };
 
 // BarcodeDetector is not in every browser's TS lib or runtime; we feature-detect it.

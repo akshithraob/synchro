@@ -9,7 +9,8 @@ const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const key = (d: Date) => d.toISOString().slice(0, 10);
 
 export default function Calendar() {
-  const { registrations } = useStore();
+  const { registrations: all } = useStore();
+  const registrations = all.filter((r) => r.status === 'approved' || r.status === 'pending');
   const now = new Date();
   const [month, setMonth] = useState(() => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)));
 
