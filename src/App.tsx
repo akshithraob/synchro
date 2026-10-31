@@ -9,6 +9,7 @@ import Dashboard from './pages/Dashboard';
 import Discover from './pages/Discover';
 import Login from './pages/Login';
 import Manage from './pages/Manage';
+import Notifications from './pages/Notifications';
 import MyActivities from './pages/MyActivities';
 import Portfolio from './pages/Portfolio';
 import Principal from './pages/Principal';
@@ -31,6 +32,7 @@ export default function App() {
         <Route path="principal" element={<Principal />} />
         <Route path="users" element={<Users />} />
         <Route path="scanner" element={<Scanner />} />
+        <Route path="notifications" element={<Notifications />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="announcements" element={<Announcements />} />
         <Route path="portfolio" element={<Portfolio />} />

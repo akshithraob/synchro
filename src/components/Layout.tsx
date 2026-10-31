@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
-import { Navigate, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import type { Role } from '../api';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { countUnread, type Role } from '../api';
 import { useStore } from '../store';
 
 const main = [
@@ -38,6 +38,22 @@ export default function Layout() {
   const { theme, toggleTheme, session, profile, ready, signOut } = useStore();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
+  const [unread, setUnread] = useState(0);
+  const { pathname } = useLocation();
+  const uid = session?.user.id;
+
+  // Poll for new notifications; also refresh on every page change.
+  useEffect(() => {
+    if (!uid) return;
+    let live = true;
+    const load = () => countUnread().then((n) => live && setUnread(n)).catch(() => {});
+    load();
+    const t = window.setInterval(load, 30000);
+    return () => {
+      live = false;
+      window.clearInterval(t);
+    };
+  }, [uid, pathname]);
 
   if (!ready) return <p className="card empty" style={{ margin: 40 }} role="status">Loading…</p>;
   if (!session) return <Navigate to="/login" replace />;
@@ -109,9 +125,16 @@ export default function Layout() {
             <button className="icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}>
               {theme === 'light' ? '☾' : '☀'}
             </button>
-            <button className="icon-btn" aria-label="Notifications">
-              ◔<span className="dot" />
-            </button>
+            <Link to="/notifications" className="icon-btn" aria-label={unread ? `Notifications, ${unread} unread` : 'Notifications'} style={{ position: 'relative', display: 'grid', placeItems: 'center' }}>
+              ◔
+              {unread > 0 && (
+                <span
+                  style={{ position: 'absolute', top: -4, right: -4, minWidth: 16, height: 16, padding: '0 4px', borderRadius: 8, background: 'var(--brand)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'grid', placeItems: 'center' }}
+                >
+                  {unread > 9 ? '9+' : unread}
+                </span>
+              )}
+            </Link>
             <button className="avatar" style={{ border: 0 }} onClick={signOut} aria-label="Sign out" title="Sign out">
               {initials(name)}
             </button>

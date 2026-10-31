@@ -176,6 +176,35 @@ export async function getAnalytics(): Promise<Analytics> {
   return unwrap(await supabase.rpc('analytics_summary')) as Analytics;
 }
 
+export interface AppNotification {
+  id: string;
+  kind: string;
+  title: string;
+  body: string;
+  link: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
+export async function listNotifications(): Promise<AppNotification[]> {
+  return unwrap(
+    await supabase.from('notifications').select('id, kind, title, body, link, read_at, created_at').order('created_at', { ascending: false }).limit(100),
+  );
+}
+
+export async function countUnread(): Promise<number> {
+  const { count, error } = await supabase.from('notifications').select('id', { count: 'exact', head: true }).is('read_at', null);
+  if (error) throw new Error(error.message);
+  return count ?? 0;
+}
+
+export async function markNotificationsRead(ids?: string[]) {
+  let q = supabase.from('notifications').update({ read_at: new Date().toISOString() }).is('read_at', null);
+  if (ids) q = q.in('id', ids);
+  const { error } = await q;
+  if (error) throw new Error(error.message);
+}
+
 export interface AppUser {
   id: string;
   full_name: string;
