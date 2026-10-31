@@ -24,7 +24,15 @@ export interface Activity {
   featured: boolean;
   status: Status;
   approval_mode: 'auto' | 'manual';
+  parent_id: string | null;
+  parent: { title: string; slug: string } | null;
 }
+
+/** Competitions sit inside an event, for example the sports inside Annual Sports Day. */
+export const SUB_LABEL = 'Competition';
+export const SUB_LABEL_PLURAL = 'Competitions';
+
+export const fullTitle = (a: Pick<Activity, 'title' | 'parent'>) => (a.parent ? `${a.parent.title}: ${a.title}` : a.title);
 
 export type RegStatus = 'pending' | 'approved' | 'rejected' | 'waitlisted';
 
@@ -59,7 +67,7 @@ export interface Profile {
 }
 
 const ACTIVITY_COLS =
-  'id, slug, title, category, starts_at, location, location_note, cover, capacity, registered_count, checked_in_count, tagline, organizer, about, about_body, requirements, schedule, featured, status, approval_mode';
+  'id, slug, title, category, starts_at, location, location_note, cover, capacity, registered_count, checked_in_count, tagline, organizer, about, about_body, requirements, schedule, featured, status, approval_mode, parent_id, parent:parent_id (title, slug)';
 
 function unwrap<T>(res: { data: T | null; error: { message: string } | null }): T {
   if (res.error) throw new Error(res.error.message);
@@ -73,11 +81,55 @@ export async function getProfile(userId: string): Promise<Profile> {
 }
 
 export async function listActivities(): Promise<Activity[]> {
-  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'approved').order('starts_at'));
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'approved').is('parent_id', null).order('starts_at')) as unknown as Activity[];
+}
+
+export async function listCheckInEvents(): Promise<Activity[]> {
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'approved').order('starts_at').order('title')) as unknown as Activity[];
+}
+
+export async function listSubEvents(parentId: string): Promise<Activity[]> {
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('parent_id', parentId).order('starts_at').order('title')) as unknown as Activity[];
+}
+
+export async function subEventCounts(): Promise<Record<string, number>> {
+  const rows = unwrap(await supabase.from('activities').select('parent_id').eq('status', 'approved').not('parent_id', 'is', null)) as { parent_id: string }[];
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.parent_id] = (out[r.parent_id] ?? 0) + 1;
+  return out;
+}
+
+export interface SubEventInput {
+  title: string;
+  capacity: number;
+  starts_at: string | null;
+  location: string;
+  about: string;
+  approval_mode: 'auto' | 'manual';
+}
+
+export async function addSubEvent(parentId: string, s: SubEventInput): Promise<string> {
+  const { data, error } = await supabase.rpc('add_sub_event', {
+    p_parent: parentId, p_title: s.title, p_capacity: s.capacity, p_starts_at: s.starts_at, p_location: s.location, p_about: s.about, p_approval: s.approval_mode,
+  });
+  if (error) throw new Error(error.message);
+  return data as string;
+}
+
+export async function updateSubEvent(id: string, s: SubEventInput) {
+  const { error } = await supabase.rpc('update_sub_event', {
+    p_id: id, p_title: s.title, p_capacity: s.capacity, p_starts_at: s.starts_at, p_location: s.location, p_about: s.about, p_approval: s.approval_mode,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function removeSubEvent(id: string) {
+  const { error } = await supabase.rpc('remove_sub_event', { p_id: id });
+  if (error) throw new Error(error.message);
 }
 
 export async function getActivity(slug: string): Promise<Activity | null> {
-  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('slug', slug).maybeSingle());
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('slug', slug).maybeSingle()) as unknown as Activity | null;
 }
 
 export async function listMyRegistrations(): Promise<Registration[]> {
@@ -243,7 +295,7 @@ export async function deleteAnnouncement(id: string) {
 }
 
 export async function listPending(): Promise<Activity[]> {
-  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'pending').order('created_at'));
+  return unwrap(await supabase.from('activities').select(ACTIVITY_COLS).eq('status', 'pending').order('created_at')) as unknown as Activity[];
 }
 
 export async function decide(id: string, status: 'approved' | 'declined', reason?: string) {
@@ -266,10 +318,11 @@ export interface NewActivity {
   approval_mode: 'auto' | 'manual';
 }
 
-export async function submitActivity(a: NewActivity, userId: string, publish = false) {
+export async function submitActivity(a: NewActivity, userId: string, publish = false): Promise<string> {
   const slug = `${a.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')}-${Math.random().toString(36).slice(2, 6)}`;
-  const { error } = await supabase.from('activities').insert({ ...a, slug, status: publish ? 'approved' : 'pending', created_by: userId });
+  const { data, error } = await supabase.from('activities').insert({ ...a, slug, status: publish ? 'approved' : 'pending', created_by: userId }).select('id').single();
   if (error) throw new Error(error.message);
+  return data.id as string;
 }
 
 export interface CheckInResult {

@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { fmtWhen } from '../api';
+import { fmtWhen, fullTitle } from '../api';
 import { useStore } from '../store';
 
 const ics = (title: string, when: string, where: string) =>
@@ -38,12 +38,12 @@ export default function Confirmed() {
 
         <div className="ticket">
           <p className="eyebrow brand">{when}</p>
-          <p style={{ fontWeight: 600, marginTop: 4 }}>{a.title}</p>
+          <p style={{ fontWeight: 600, marginTop: 4 }}>{fullTitle(a)}</p>
           <p className="muted" style={{ fontSize: 13 }}>
             {a.location} · {a.location_note}
           </p>
           <div style={{ display: 'grid', placeItems: 'center', marginTop: 14 }}>
-            {qr && <img src={qr} width={132} height={132} alt={`Entry pass QR code for ${a.title}`} style={{ borderRadius: 8 }} />}
+            {qr && <img src={qr} width={132} height={132} alt={`Entry pass QR code for ${fullTitle(a)}`} style={{ borderRadius: 8 }} />}
             <p style={{ marginTop: 8, fontWeight: 600, letterSpacing: '0.08em' }}>{reg.pass_code}</p>
           </div>
         </div>

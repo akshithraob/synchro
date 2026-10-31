@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fmtTime } from '../api';
+import { fmtTime, fullTitle } from '../api';
 import { useStore } from '../store';
 
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -78,9 +78,9 @@ export default function Calendar() {
                     to={`/activity/${r.activities.slug}`}
                     className="pill"
                     style={{ display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    title={r.activities.title}
+                    title={fullTitle(r.activities)}
                   >
-                    {r.activities.title}
+                    {fullTitle(r.activities)}
                   </Link>
                 ))}
               </div>
@@ -99,7 +99,7 @@ export default function Calendar() {
         <div style={{ display: 'grid', gap: 8 }}>
           {upcoming.map((r) => (
             <Link key={r.id} to={`/activity/${r.activities.slug}`} className="card panel" style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <strong>{r.activities.title}</strong>
+              <strong>{fullTitle(r.activities)}</strong>
               <span className="muted">
                 {new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }).format(new Date(r.activities.starts_at))} · {fmtTime(r.activities.starts_at)}
               </span>

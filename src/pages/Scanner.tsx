@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, Navigate } from 'react-router-dom';
-import { checkIn, fmtDay, listActivities, type Activity } from '../api';
+import { checkIn, fmtDay, fullTitle, listCheckInEvents, type Activity } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
 import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
@@ -27,7 +27,7 @@ const makeDetector = (): Detector | null => {
 
 export default function Scanner() {
   const { profile } = useStore();
-  const events = useAsync(listActivities, []);
+  const events = useAsync(listCheckInEvents, []);
   const [activityId, setActivityId] = useState<string>('');
   const [result, setResult] = useState<Result | null>(null);
   const [manual, setManual] = useState(false);
@@ -126,7 +126,7 @@ export default function Scanner() {
             <select id="event" className="select" style={{ width: '100%', color: 'var(--ink)', fontWeight: 600 }} value={current.id} onChange={(e) => setActivityId(e.target.value)}>
               {list.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.title}
+                  {fullTitle(a)}
                 </option>
               ))}
             </select>

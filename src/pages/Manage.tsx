@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { decideRegistration, fmtWhen, listMyEvents, listPendingRegistrations, listRegistrants, REG_LABEL, updateEvent, withdrawEvent, type MyEvent } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
+import SubEventsAdmin from '../components/SubEventsAdmin';
 import { categories } from '../data';
 import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
@@ -185,7 +186,7 @@ export default function Manage() {
       )}
 
       <div style={{ display: 'grid', gap: 12 }}>
-        {(events.data ?? []).map((e) => {
+        {(events.data ?? []).filter((e) => !e.parent_id).map((e) => {
           const editable = e.status === 'draft' || e.status === 'pending';
           return (
             <article className="card panel" key={e.id}>
@@ -236,6 +237,13 @@ export default function Manage() {
                   <Registrants id={e.id} onChanged={() => { events.reload(); queue.reload(); }} />
                 </div>
               )}
+
+              <SubEventsAdmin
+                parent={e}
+                subs={(events.data ?? []).filter((x) => x.parent_id === e.id).sort((a, b) => a.starts_at.localeCompare(b.starts_at) || a.title.localeCompare(b.title))}
+                onChanged={() => { events.reload(); queue.reload(); }}
+                renderRegistrants={(id) => <Registrants id={id} onChanged={() => { events.reload(); queue.reload(); }} />}
+              />
             </article>
           );
         })}

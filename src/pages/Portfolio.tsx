@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { fmtDay } from '../api';
+import { fmtDay, fullTitle } from '../api';
 import { useStore } from '../store';
 
 export default function Portfolio() {
@@ -48,7 +48,7 @@ export default function Portfolio() {
             {attended.map((r) => (
               <div className="approval" key={r.id}>
                 <div>
-                  <strong style={{ fontSize: 14 }}>{r.activities.title}</strong>
+                  <strong style={{ fontSize: 14 }}>{fullTitle(r.activities)}</strong>
                   <small>
                     {r.activities.category} · {r.activities.location}
                   </small>

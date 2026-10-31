@@ -1779,3 +1779,38 @@ h2 {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- Competitions inside an event ---------- */
+.subrows {
+  display: grid;
+  gap: 0;
+}
+
+.subrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+
+.subact {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+@media (max-width: 640px) {
+  .subrow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .subact {
+    justify-content: flex-start;
+  }
+}

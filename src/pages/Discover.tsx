@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { listActivities } from '../api';
+import { listActivities, subEventCounts } from '../api';
 import ActivityCard from '../components/ActivityCard';
 import { ErrorBox, Loading } from '../components/Async';
 import { categories } from '../data';
@@ -14,6 +14,7 @@ export default function Discover() {
   const [cat, setCat] = useState<(typeof categories)[number]>('All');
   const [sort, setSort] = useState<Sort>('soonest');
   const { data, error, loading, reload } = useAsync(listActivities, []);
+  const counts = useAsync(subEventCounts, []).data ?? {};
 
   const list = useMemo(() => {
     const filtered = (data ?? []).filter(
@@ -73,7 +74,7 @@ export default function Discover() {
           </div>
           <div className="grid cols-4">
             {trending.map((a) => (
-              <ActivityCard key={a.id} a={a} />
+              <ActivityCard key={a.id} a={a} subCount={counts[a.id]} />
             ))}
           </div>
         </>
@@ -86,7 +87,7 @@ export default function Discover() {
           </div>
           <div className="grid cols-4">
             {rest.map((a) => (
-              <ActivityCard key={a.id} a={a} />
+              <ActivityCard key={a.id} a={a} subCount={counts[a.id]} />
             ))}
           </div>
         </>

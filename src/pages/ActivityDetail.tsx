@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { fmtDay, fmtTime, getActivity, REG_LABEL, spotsLeft } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
+import SubEventList from '../components/SubEventList';
 import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
 
@@ -41,13 +42,20 @@ export default function ActivityDetail() {
   return (
     <main className="page">
       <p className="crumbs">
-        <Link to="/discover">Discover</Link> &nbsp;/&nbsp; {a.category}
+        <Link to="/discover">Discover</Link> &nbsp;/&nbsp;{' '}
+        {a.parent ? (
+          <>
+            <Link to={`/activity/${a.parent.slug}`}>{a.parent.title}</Link> &nbsp;/&nbsp; {a.title}
+          </>
+        ) : (
+          a.category
+        )}
       </p>
 
       <section className="banner" style={{ background: a.cover }}>
         <span className="pill">{a.category}</span>
         <h1>{a.title}</h1>
-        <p>{a.tagline}</p>
+        <p>{a.parent ? `Part of ${a.parent.title}` : a.tagline}</p>
         <p style={{ fontSize: 13 }}>Hosted by {a.organizer}</p>
       </section>
 
@@ -94,6 +102,8 @@ export default function ActivityDetail() {
               </>
             )}
           </section>
+
+          {!a.parent_id && <SubEventList parent={a} />}
 
           {a.schedule.length > 0 && (
             <section className="card schedule">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { submitActivity } from '../api';
+import { addSubEvent, submitActivity, SUB_LABEL, SUB_LABEL_PLURAL } from '../api';
 import { categories } from '../data';
 import { useStore } from '../store';
 
@@ -39,6 +39,8 @@ function draftPlan(name: string, prompt: string): Plan {
   };
 }
 
+const SPORT_SUGGESTIONS = ['100m sprint', '200m race', 'Relay race', 'Long jump', 'Cricket', 'Football', 'Kabaddi', 'Tug of war'];
+
 // Next Friday 9:00, stored as campus-local wall-clock time (see api.ts).
 function nextFriday() {
   const d = new Date();
@@ -56,6 +58,7 @@ export default function Studio() {
   const [category, setCategory] = useState('Sports');
   const [capacity, setCapacity] = useState(300);
   const [venue, setVenue] = useState('Stadium');
+  const [subs, setSubs] = useState<{ title: string; capacity: number }[]>([]);
   const [plan, setPlan] = useState<Plan | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -74,7 +77,7 @@ export default function Studio() {
     setBusy(true);
     setError(null);
     try {
-      await submitActivity(
+      const eventId = await submitActivity(
         {
           title: name.trim(),
           category,
@@ -91,6 +94,13 @@ export default function Studio() {
       );
       setSubmitted(true);
       setSaved(isCoordinator ? 'Published' : 'Submitted for approval');
+      for (const s of subs.filter((x) => x.title.trim().length >= 2)) {
+        try {
+          await addSubEvent(eventId, { title: s.title.trim(), capacity: s.capacity, starts_at: null, location: '', about: '', approval_mode: approval });
+        } catch (err) {
+          throw new Error(`The event was created, but “${s.title}” could not be added (${(err as Error).message}). Add the rest from Manage activities.`);
+        }
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -161,6 +171,32 @@ export default function Studio() {
             </span>
           </div>
 
+          <div style={{ display: 'grid', gap: 8, marginTop: 8 }}>
+            <label>{SUB_LABEL_PLURAL} (optional)</label>
+            <p className="muted" style={{ fontSize: 12 }}>
+              Split the event into parts people register for separately, such as the different sports in a sports day. Each has its own seats.
+            </p>
+            {subs.map((s, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <input className="field" style={{ flex: '1 1 180px' }} aria-label={`${SUB_LABEL} ${i + 1} name`} placeholder="Name" value={s.title} maxLength={160} onChange={(e) => setSubs(subs.map((x, k) => (k === i ? { ...x, title: e.target.value } : x)))} />
+                <input type="number" min={1} className="field" style={{ width: 90 }} aria-label={`${SUB_LABEL} ${i + 1} seats`} value={s.capacity} onChange={(e) => setSubs(subs.map((x, k) => (k === i ? { ...x, capacity: Math.max(1, Number(e.target.value) || 1) } : x)))} />
+                <button type="button" className="btn ghost" aria-label={`Remove ${SUB_LABEL.toLowerCase()} ${i + 1}`} onClick={() => setSubs(subs.filter((_, k) => k !== i))}>Remove</button>
+              </div>
+            ))}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn ghost" onClick={() => setSubs([...subs, { title: '', capacity: 30 }])}>Add {SUB_LABEL.toLowerCase()}</button>
+              {category === 'Sports' && (
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => setSubs([...subs, ...SPORT_SUGGESTIONS.filter((t) => !subs.some((s) => s.title === t)).map((title) => ({ title, capacity: 30 }))])}
+                >
+                  Suggest sports
+                </button>
+              )}
+            </div>
+          </div>
+
           <label htmlFor="approval">Registration</label>
           <select id="approval" className="select" style={{ maxWidth: 320 }} value={approval} onChange={(e) => setApproval(e.target.value as 'auto' | 'manual')}>
             <option value="auto">Automatic confirmation</option>
@@ -197,6 +233,16 @@ export default function Studio() {
                   {s.label}
                 </div>
               ))}
+              {subs.some((s) => s.title.trim()) && (
+                <>
+                  <h4 style={{ margin: '8px 0 0', fontSize: 13 }}>{SUB_LABEL_PLURAL}</h4>
+                  <ul className="checklist">
+                    {subs.filter((s) => s.title.trim()).map((s, i) => (
+                      <li key={i}>{s.title.trim()} · {s.capacity} seats</li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <h4 style={{ margin: '8px 0 0', fontSize: 13 }}>Preparation checklist</h4>
               <ul className="checklist">
                 {plan.checklist.map((c) => (

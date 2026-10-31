@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { listUsers, setUserRole, type Role } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
 import { useAsync } from '../lib/useAsync';
+import ImportUsers from '../components/ImportUsers';
 import { useStore } from '../store';
 
 const ROLES: Role[] = ['student', 'teacher', 'coordinator', 'principal'];
@@ -75,6 +76,7 @@ export default function Users() {
         </div>
       </div>
       <InstituteCard />
+      <ImportUsers onDone={users.reload} />
       {users.loading && <Loading />}
       {users.error && <ErrorBox message={users.error} onRetry={users.reload} />}
       {error && <p role="alert" className="warn">{error}</p>}
