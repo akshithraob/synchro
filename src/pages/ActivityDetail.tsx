@@ -106,7 +106,7 @@ export default function ActivityDetail() {
 
           {!a.parent_id && <SubEventList parent={a} />}
 
-          <EventGallery activityId={a.id} canEdit={profile?.role === 'principal'} />
+          <EventGallery activityId={a.id} isPrincipal={profile?.role === 'principal'} userId={profile?.id} />
 
           {a.schedule.length > 0 && (
             <section className="card schedule">

@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { decide, getAnalytics, listActivities, listPending } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
 import { useAsync } from '../lib/useAsync';
+import PhotoQueue from '../components/PhotoQueue';
 import { useStore } from '../store';
 
 export default function Principal() {
@@ -68,6 +69,8 @@ export default function Principal() {
         </div>
         <span className="pill">Live</span>
       </div>
+
+      <PhotoQueue />
 
       <div className="metrics" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
         {metrics.map((m) => (

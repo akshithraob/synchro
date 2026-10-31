@@ -1873,3 +1873,25 @@ h2 {
   color: #fff;
   border-color: rgb(255 255 255 / 0.5);
 }
+
+.shot-wrap {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+
+.shot-wrap .shot {
+  cursor: default;
+}
+
+.shot-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.shot-actions .btn {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
