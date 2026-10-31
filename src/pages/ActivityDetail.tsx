@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { fmtDay, fmtTime, getActivity, REG_LABEL, spotsLeft } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
+import EventGallery from '../components/EventGallery';
 import SubEventList from '../components/SubEventList';
 import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
 
 export default function ActivityDetail() {
   const { slug = '' } = useParams();
-  const { registrations, register, cancel } = useStore();
+  const { registrations, register, cancel, profile } = useStore();
   const navigate = useNavigate();
   const { data: a, error, loading, reload } = useAsync(() => getActivity(slug), [slug]);
   const [busy, setBusy] = useState(false);
@@ -104,6 +105,8 @@ export default function ActivityDetail() {
           </section>
 
           {!a.parent_id && <SubEventList parent={a} />}
+
+          <EventGallery activityId={a.id} canEdit={profile?.role === 'principal'} />
 
           {a.schedule.length > 0 && (
             <section className="card schedule">
