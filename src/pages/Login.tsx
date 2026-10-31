@@ -40,7 +40,7 @@ export default function Login() {
           <span className="brand-mark" aria-hidden>
             C
           </span>
-          <strong style={{ fontSize: 20 }}>campusly</strong>
+          <strong style={{ fontSize: 20 }}>synchro</strong>
         </div>
         <h1 style={{ fontSize: 22, textAlign: 'center' }}>{mode === 'in' ? 'Welcome back' : 'Create your account'}</h1>
 

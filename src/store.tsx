@@ -24,7 +24,7 @@ const Ctx = createContext<Store | null>(null);
 
 const readTheme = (): Theme => {
   try {
-    const saved = localStorage.getItem('campusly.theme');
+    const saved = localStorage.getItem('synchro.theme');
     if (saved === 'light' || saved === 'dark') return saved;
   } catch {
     /* storage unavailable */
@@ -42,7 +42,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
     try {
-      localStorage.setItem('campusly.theme', theme);
+      localStorage.setItem('synchro.theme', theme);
     } catch {
       /* storage unavailable */
     }

@@ -54,7 +54,7 @@ export default function Principal() {
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'campusly-attendance.csv';
+    a.download = 'synchro-attendance.csv';
     a.click();
     URL.revokeObjectURL(url);
   };

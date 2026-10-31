@@ -127,7 +127,7 @@ export default function Studio() {
           <label htmlFor="prompt">Describe your event</label>
           <textarea id="prompt" className="field" rows={4} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
           <p className="muted" style={{ fontSize: 12 }}>
-            Campusly will draft a starter plan for your review.
+            Synchro will draft a starter plan for your review.
           </p>
 
           <div className="draft-meta" style={{ alignItems: 'flex-end' }}>

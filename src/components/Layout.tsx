@@ -59,7 +59,7 @@ export default function Layout() {
             C
           </span>
           <div>
-            <strong>campusly</strong>
+            <strong>synchro</strong>
             <small>Northstar University</small>
           </div>
         </div>

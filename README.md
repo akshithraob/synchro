@@ -1,4 +1,4 @@
-# Campusly
+# Synchro
 
 A campus activity app: students discover and register for events, staff create and run them, and the principal approves and tracks them. Built from the Figma file "Campus Activity — Product Prototype".
 
