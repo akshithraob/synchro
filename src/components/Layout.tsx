@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { countUnread, type Role } from '../api';
 import { useStore } from '../store';
+import InstallButton from './InstallButton';
 
 const main = [
   { to: '/', icon: '⌂', label: 'Overview', end: true },
@@ -122,6 +123,7 @@ export default function Layout() {
             <kbd>⌘ K</kbd>
           </form>
           <div className="topbar-end">
+            <InstallButton />
             <button className="icon-btn" onClick={toggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}>
               {theme === 'light' ? '☾' : '☀'}
             </button>
