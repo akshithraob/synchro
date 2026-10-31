@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useStore } from '../store';
 
 export default function Login() {
-  const { session, signIn, signUp } = useStore();
+  const { session, signIn, signUp, institute } = useStore();
   const [mode, setMode] = useState<'in' | 'up'>('in');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -40,7 +40,10 @@ export default function Login() {
           <span className="brand-mark" aria-hidden>
             S
           </span>
-          <strong style={{ fontSize: 20 }}>synchro</strong>
+          <div>
+            <strong style={{ fontSize: 20 }}>synchro</strong>
+            {institute && <small style={{ display: 'block', color: 'var(--muted)' }}>{institute}</small>}
+          </div>
         </div>
         <h1 style={{ fontSize: 22, textAlign: 'center' }}>{mode === 'in' ? 'Welcome back' : 'Create your account'}</h1>
 

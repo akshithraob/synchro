@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Navigate } from 'react-router-dom';
 import { listUsers, setUserRole, type Role } from '../api';
 import { ErrorBox, Loading } from '../components/Async';
@@ -6,6 +6,44 @@ import { useAsync } from '../lib/useAsync';
 import { useStore } from '../store';
 
 const ROLES: Role[] = ['student', 'teacher', 'coordinator', 'principal'];
+
+function InstituteCard() {
+  const { institute, updateInstitute } = useStore();
+  const [name, setName] = useState(institute);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => setName(institute), [institute]);
+
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      await updateInstitute(name);
+      setMsg({ ok: true, text: 'Saved. The new name now shows under the app name.' });
+    } catch (err) {
+      setMsg({ ok: false, text: (err as Error).message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form className="card panel" onSubmit={save} style={{ display: 'grid', gap: 8, marginBottom: 16 }} aria-label="Institute name">
+      <h2 style={{ fontSize: 16 }}>Institute name</h2>
+      <p className="muted" style={{ fontSize: 13 }}>Shown under the app name for everyone, including on the sign-in page.</p>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <label className="sr-only" htmlFor="institute">Institute name</label>
+        <input id="institute" className="field" style={{ flex: '1 1 240px' }} value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
+        <button className="btn" disabled={busy || name.trim() === institute || name.trim().length < 2}>
+          {busy ? 'Saving…' : 'Save'}
+        </button>
+      </div>
+      {msg && <p role={msg.ok ? 'status' : 'alert'} className={msg.ok ? 'muted' : 'warn'}>{msg.text}</p>}
+    </form>
+  );
+}
 
 export default function Users() {
   const { profile, session } = useStore();
@@ -36,6 +74,7 @@ export default function Users() {
           <p className="sub">Choose what each person can do. Changes apply the next time they load the app.</p>
         </div>
       </div>
+      <InstituteCard />
       {users.loading && <Loading />}
       {users.error && <ErrorBox message={users.error} onRetry={users.reload} />}
       {error && <p role="alert" className="warn">{error}</p>}

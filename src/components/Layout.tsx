@@ -3,6 +3,7 @@ import { Link, Navigate, NavLink, Outlet, useLocation, useNavigate } from 'react
 import { countUnread, type Role } from '../api';
 import { useStore } from '../store';
 import InstallButton from './InstallButton';
+import PalettePicker from './PalettePicker';
 
 const main = [
   { to: '/', icon: '⌂', label: 'Overview', end: true },
@@ -42,7 +43,7 @@ const initials = (name: string) =>
     .toUpperCase() || '?';
 
 export default function Layout() {
-  const { theme, toggleTheme, session, profile, ready, signOut } = useStore();
+  const { theme, toggleTheme, session, profile, ready, signOut, institute } = useStore();
   const navigate = useNavigate();
   const [q, setQ] = useState('');
   const [unread, setUnread] = useState(0);
@@ -84,7 +85,7 @@ export default function Layout() {
           </span>
           <div>
             <strong>synchro</strong>
-            <small>Northstar University</small>
+            {institute && <small>{institute}</small>}
           </div>
         </div>
 
@@ -104,6 +105,8 @@ export default function Layout() {
             </NavLink>
           ))}
         </nav>
+
+        <PalettePicker />
 
         <div className="profile">
           <span className="avatar">{initials(name)}</span>
@@ -198,6 +201,7 @@ export default function Layout() {
             ))}
             <div className="sheet-actions">
               <InstallButton />
+              <PalettePicker />
               <button className="btn ghost" onClick={toggleTheme}>
                 {theme === 'light' ? 'Dark theme' : 'Light theme'}
               </button>

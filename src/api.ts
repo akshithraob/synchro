@@ -221,6 +221,17 @@ export async function setUserRole(userId: string, role: Role) {
   if (error) throw new Error(error.message);
 }
 
+export async function getInstituteName(): Promise<string> {
+  const { data, error } = await supabase.from('app_settings').select('value').eq('key', 'institute_name').maybeSingle();
+  if (error) throw new Error(error.message);
+  return data?.value ?? '';
+}
+
+export async function setInstituteName(name: string) {
+  const { error } = await supabase.rpc('set_institute_name', { p_name: name });
+  if (error) throw new Error(error.message);
+}
+
 export async function postAnnouncement(a: { tag: string; title: string; body: string }) {
   const { error } = await supabase.from('announcements').insert(a);
   if (error) throw new Error(error.message);

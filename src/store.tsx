@@ -5,15 +5,28 @@ import { supabase } from './lib/supabase';
 
 type Theme = 'light' | 'dark';
 
+export const PALETTES = [
+  { id: 'teal', label: 'Teal', color: '#087f70' },
+  { id: 'indigo', label: 'Indigo', color: '#4f46e5' },
+  { id: 'rose', label: 'Rose', color: '#be185d' },
+  { id: 'amber', label: 'Sunset', color: '#b45309' },
+  { id: 'slate', label: 'Graphite', color: '#334155' },
+] as const;
+export type Palette = (typeof PALETTES)[number]['id'];
+
 interface Store {
   theme: Theme;
   toggleTheme: () => void;
+  palette: Palette;
+  setPalette: (p: Palette) => void;
   ready: boolean;
   session: Session | null;
   profile: api.Profile | null;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
+  institute: string;
+  updateInstitute: (name: string) => Promise<void>;
   registrations: api.Registration[];
   register: (activityId: string) => Promise<void>;
   cancel: (activityId: string) => Promise<void>;
@@ -32,12 +45,44 @@ const readTheme = (): Theme => {
   return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 };
 
+const readPalette = (): Palette => {
+  try {
+    const saved = localStorage.getItem('synchro.palette');
+    if (PALETTES.some((p) => p.id === saved)) return saved as Palette;
+  } catch {
+    /* storage unavailable */
+  }
+  return 'teal';
+};
+
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(readTheme);
+  const [palette, setPalette] = useState<Palette>(readPalette);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<api.Profile | null>(null);
   const [ready, setReady] = useState(false);
   const [registrations, setRegistrations] = useState<api.Registration[]>([]);
+  const [institute, setInstitute] = useState<string>(() => {
+    try {
+      return localStorage.getItem('synchro.institute') ?? '';
+    } catch {
+      return '';
+    }
+  });
+
+  useEffect(() => {
+    api
+      .getInstituteName()
+      .then((n) => {
+        setInstitute(n);
+        try {
+          localStorage.setItem('synchro.institute', n);
+        } catch {
+          /* storage unavailable */
+        }
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -47,6 +92,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* storage unavailable */
     }
   }, [theme]);
+
+  useEffect(() => {
+    document.documentElement.dataset.palette = palette;
+    try {
+      localStorage.setItem('synchro.palette', palette);
+    } catch {
+      /* storage unavailable */
+    }
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', PALETTES.find((p) => p.id === palette)?.color ?? '#087f70');
+  }, [palette]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -87,6 +142,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     () => ({
       theme,
       toggleTheme: () => setTheme((t) => (t === 'light' ? 'dark' : 'light')),
+      palette,
+      setPalette,
       ready,
       session,
       profile,
@@ -102,6 +159,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await supabase.auth.signOut();
       },
+      institute,
+      updateInstitute: async (name) => {
+        await api.setInstituteName(name);
+        const n = await api.getInstituteName();
+        setInstitute(n);
+        try {
+          localStorage.setItem('synchro.institute', n);
+        } catch {
+          /* storage unavailable */
+        }
+      },
       registrations,
       register: async (activityId) => {
         if (!userId) throw new Error('Sign in to register.');
@@ -115,7 +183,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       },
       refreshRegistrations,
     }),
-    [theme, ready, session, profile, registrations, userId, refreshRegistrations],
+    [theme, palette, ready, session, profile, institute, registrations, userId, refreshRegistrations],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
