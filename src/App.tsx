@@ -10,6 +10,7 @@ import Discover from './pages/Discover';
 import Login from './pages/Login';
 import Manage from './pages/Manage';
 import MyActivities from './pages/MyActivities';
+import Portfolio from './pages/Portfolio';
 import Principal from './pages/Principal';
 import Scanner from './pages/Scanner';
 import Studio from './pages/Studio';
@@ -32,7 +33,7 @@ export default function App() {
         <Route path="scanner" element={<Scanner />} />
         <Route path="calendar" element={<Calendar />} />
         <Route path="announcements" element={<Announcements />} />
-        <Route path="portfolio" element={<ComingSoon title="Portfolio" />} />
+        <Route path="portfolio" element={<Portfolio />} />
         <Route path="*" element={<ComingSoon title="Page not found" />} />
       </Route>
     </Routes>
