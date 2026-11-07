@@ -1,75 +1,83 @@
 # Synchro
 
-A campus activity app: students discover and register for events, staff create and run them, and the principal approves and tracks them. Built from the Figma file "Campus Activity — Product Prototype".
+**One place for every campus event.** Synchro is a web app for schools and colleges: students discover and register for events, teachers create and run them, and the principal approves them and tracks how they go.
 
-**Stack:** Vite, React 19, TypeScript, react-router, Supabase (Postgres, Auth, row-level security). Free tier only.
+🥉 **3rd place and ₹6,000** at the inter-school and college hackathon hosted by Gatik Junior College.
 
-## Run it
+<!-- Add a screenshot or GIF here, e.g. ![Synchro dashboard](docs/screenshot.png) -->
 
-```bash
-npm install
-npm run dev      # http://localhost:5173
-npm run build    # type-check + production build
-npm run lint
-```
+## Why
 
-Create `.env.local` (git-ignored; see `.env.example`):
+Event information on campus usually arrives in scattered WhatsApp forwards and notice-board posters. Students miss events, teachers track registrations by hand, and nobody has a clear record of who attended what. Synchro gives every event a single home, from proposal and approval through registration to check-in.
 
-```
-VITE_SUPABASE_URL=https://kapgqcvqliqoawvjrojh.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=<publishable key from the Supabase dashboard>
-```
+## Features
+
+- **Discover and register:** browse upcoming events, register or cancel in one tap, and get a QR pass for entry.
+- **Calendar and announcements:** see every event at a glance and keep up with campus-wide updates.
+- **Event management:** teachers create, edit or withdraw events and see who has registered.
+- **Approvals:** the principal approves or declines events and gives a reason when declining.
+- **QR check-in:** coordinators and teachers check attendees in by scanning their pass or entering a code.
+- **Live analytics:** registration and attendance numbers, with CSV export.
+- **Student portfolio:** a printable record of the events each student has attended.
+- **Capacity limits:** enforced in the database, so an event can never be overbooked.
 
 ## Roles
 
-| Role | Can do |
+| Role | What they can do |
 |---|---|
-| student | Discover, register/cancel, QR pass, calendar, announcements, portfolio |
-| coordinator | Everything a student can, plus event check-in |
-| teacher | Plus create/edit/withdraw own events, see registrants, check-in |
-| principal | Plus approve/decline events (with reason), analytics, post announcements, manage people & roles |
+| Student | Discover events, register or cancel, QR pass, calendar, announcements, portfolio |
+| Coordinator | Everything a student can, plus check attendees in |
+| Teacher | Everything a coordinator can, plus create, edit and withdraw their own events and view registrants |
+| Principal | Everything above, plus approve or decline events, view analytics, post announcements, and manage people and roles |
 
-New sign-ups are students. The principal changes roles on **People & roles**.
+New sign-ups start as students. The principal assigns other roles from the **People & roles** page.
 
-## What you asked for (history)
+## Tech stack
 
-1. Review the Figma mockup, suggest improvements, then start coding it.
-2. Connect Claude Code to OpenPencil (ACP + MCP packages, login). Done.
-3. Build the app from the `.fig` file. Done: all 9 screens.
-4. Add a Supabase backend. Done: new project `campusly` (ap-south-1, free), auth, schema, RLS, check-in logic.
-5. Your account `akshithraobompelli@gmail.com` is the principal.
-6. Split the work into phases that fit 6 hours, and after each phase say what changed and how to test it.
-7. No paid API keys, so no real AI. Done: the Studio uses a free template planner.
+- **Frontend:** React 19, TypeScript, Vite, React Router
+- **Backend:** Supabase (Postgres, Auth, row-level security)
+- **Security:** every table is protected by row-level security, and each database function checks the caller's role before running.
 
-## Phases
+### Data model
 
-| # | Phase | Status |
-|---|---|---|
-| 1 | Calendar and Announcements | Built |
-| 2 | Event management (edit, withdraw, registrants, decline reasons) | Built |
-| 3 | Live analytics + CSV export | Built |
-| 4 | AI Copilot | Dropped (no paid keys); template planner instead |
-| 5 | People & roles, git, deploy config | Built |
-| 6 | Portfolio (attended events, print/PDF) | Built |
+- `profiles`: users and their roles
+- `activities`: events
+- `registrations`: who signed up for what, and check-in status
+- `announcements`: campus-wide posts
 
-## Database (Supabase)
+## Getting started
 
-Tables: `profiles`, `activities`, `registrations`, `announcements`. All have row-level security. Functions: `check_in`, `event_registrants`, `analytics_summary`, `list_users`, `set_user_role` (each checks the caller's role inside). Capacity is enforced by a trigger. Migrations are recorded in the Supabase project.
+**Requirements:** Node.js 18+ and a free [Supabase](https://supabase.com) project.
 
-## What's left
+```bash
+git clone https://github.com/akshithraob/synchro.git
+cd synchro
+npm install
+```
 
-- [ ] **Browser testing.** Everything was built and type-checked, and the database rules were tested with rolled-back SQL, but the signed-in screens have not been clicked through end to end. Walk through each phase's test steps.
-- [ ] **Camera QR scanning** is untested on a real device (manual code entry works).
-- [ ] **Deploy** (free): push to GitHub, import on Vercel, set the two env vars, add the Vercel URL under Supabase Authentication → URL Configuration.
-- [ ] **Turn on leaked-password protection** (Supabase dashboard → Authentication).
-- [ ] **Decide on email confirmation** (Authentication → Providers → Email). Production should keep it on.
-- [ ] **Delete the unused `copilot-plan` Edge Function** in the dashboard (Edge Functions). Nothing calls it.
-- [ ] **Clean test data:** two "Annual Sports Day" events exist from testing.
-- [ ] **Portfolio shows event counts only**; the database has no duration, so no hours.
-- [ ] **Push the repo** to a remote (only a local commit exists).
-- [ ] No automated tests yet; lint reports style warnings only.
+Create a `.env.local` file in the project root (see `.env.example`):
 
-## Known notes
+```
+VITE_SUPABASE_URL=your-supabase-project-url
+VITE_SUPABASE_PUBLISHABLE_KEY=your-publishable-key
+```
 
-- Event times are campus-local wall-clock stored as UTC and shown as UTC, so they don't shift with the viewer's timezone.
-- Supabase's security advisor lists the role-checking functions above as "callable by signed-in users". That is intentional.
+Then:
+
+```bash
+npm run dev      # start the dev server at http://localhost:5173
+npm run build    # type-check and build for production
+npm run lint     # lint the code
+```
+
+## Roadmap
+
+- [ ] Deploy a live demo
+- [ ] Test QR scanning with the camera on more devices
+- [ ] Track event hours in the student portfolio
+- [ ] Add automated tests
+
+## Author
+
+Built by **Akshith**, a first-year Intermediate (MPC) student at Excellencia Junior College, Hyderabad.
+[LinkedIn](https://linkedin.com/in/your-handle) · [GitHub](https://github.com/akshithraob)
